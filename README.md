@@ -22,10 +22,9 @@ All the algorithms and experiments used in this paper were implemented using [R]
 
 If you have questions or sugestions, send us an email:
 
-**Leonardo N. Ferreira**<br>
-[ferreira@leonardonascimento.com](mailto:ferreira@leonardonascimento.com)<br>
-[leonardoferreira.com](https://leonardoferreira.com)
+**Ryan Michael**<br>
+[rmichael@mail.usf.edu](mailto:rmichael@mial.usf.edu)<br>
+[obw3@cdc.gov](mailto:obw3@cdc.gov
 
-**Didier A. Vega-Oliveros**<br>
-[davo@icmc.usp.br](mailto:davo@icmc.usp.br)<br>
-[didiervega.github.io](https://didiervega.github.io/)
+**Ambarish Vaidyanathan**<br>
+[dvq3@cdc.gov](mailto:dvq3@cdc.gov)<br>
