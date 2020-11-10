@@ -2,7 +2,7 @@
 Collection of code used in the paper Public Health Applications of Historical Smoke Forecasts: An Evaluation of Archived BlueSky data for the Coterminous United States, 2015 <br>
 Authors: Ryan Michael, PhD; Maria C. Mirabelli, PhD; and Ambarish Vaidyanathan, PhD
 
-![wildfire smoke Concentrations](figs/fig1.png)
+![wildfire smoke Concentrations](figs/NAM_summer_smk_.png)
 
 ### Code
 
