@@ -24,7 +24,7 @@ If you have questions or sugestions, send us an email:
 
 **Ryan Michael**<br>
 [rmichael@mail.usf.edu](mailto:rmichael@mial.usf.edu)<br>
-[obw3@cdc.gov](mailto:obw3@cdc.gov
+[obw3@cdc.gov](mailto:obw3@cdc.gov)<br>
 
 **Ambarish Vaidyanathan**<br>
 [dvq3@cdc.gov](mailto:dvq3@cdc.gov)<br>
