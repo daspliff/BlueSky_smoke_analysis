@@ -1,4 +1,4 @@
-# BlueSky_smoke_analysis
+# BlueSky Wlidfire Smoke Data Analysis
 Collection of code used in the paper Public Health Applications of Historical Smoke Forecasts: An Evaluation of Archived BlueSky data for the Coterminous United States, 2015 <br>
 Authors: Ryan Michael, PhD; Maria C. Mirabelli, PhD; and Ambarish Vaidyanathan, PhD
 
@@ -18,8 +18,7 @@ All the algorithms and experiments used in this paper were implemented using [R]
    * ```R.Rproj```
       - R Studio project file
       
-      ### Contact
-
+### Contact
 If you have questions or sugestions, send us an email:
 
 **Ryan Michael**<br>
