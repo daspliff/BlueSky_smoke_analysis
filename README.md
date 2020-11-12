@@ -19,9 +19,12 @@ All the algorithms and experiments used in this paper were implemented using [R]
 
 * Bash_scripts/
    *```gen_batch_files.csh```
+
    *```get_wf_data.sh```
+
    *```run_batch_bluesky.sh```
-   - Scripts for processing raw archived data as a batch job
+   
+      - Scripts for processing raw archived data as a batch job
 
 
 * sample_data/
@@ -36,7 +39,7 @@ All the algorithms and experiments used in this paper were implemented using [R]
    *```County_pop_yr_1418.csv```
       - County-level population data
    *```NCHSURCodes2013.xlsx```
-   - NCHS dUrban_Rural classification codes
+   - NCHS Urban_Rural classification codes
 
 
 
