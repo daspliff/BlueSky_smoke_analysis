@@ -18,12 +18,9 @@ All the algorithms and experiments used in this paper were implemented using [R]
  
 
 * Bash_scripts/
-   *```gen_batch_files.csh```
-
-   *```get_wf_data.sh```
-
-   *```run_batch_bluesky.sh```
-   
+   * ```gen_batch_files.csh```
+   * ```get_wf_data.sh```
+   * ```run_batch_bluesky.sh```
       - Scripts for processing raw archived data as a batch job
 
 
@@ -34,12 +31,12 @@ All the algorithms and experiments used in this paper were implemented using [R]
       - US COunty boundary shapefiles
    * us_state_bdry/
       - US state boundary shapefiles
-   *```Comparison_Dataset_NAM_AQS_2015.csv```
+   * ```Comparison_Dataset_NAM_AQS_2015.csv```
       - Sample processed county-level NAM/AQS smoke dataset
-   *```County_pop_yr_1418.csv```
+   * ```County_pop_yr_1418.csv```
       - County-level population data
-   *```NCHSURCodes2013.xlsx```
-   - NCHS Urban_Rural classification codes
+   * ```NCHSURCodes2013.xlsx```
+      - NCHS Urban_Rural classification codes
 
 
 
