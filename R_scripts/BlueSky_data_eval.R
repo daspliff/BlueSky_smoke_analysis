@@ -1,6 +1,5 @@
 # Load Packages ----------------------------------------------------------------
-Packages <- c("PWFSLSmoke", 
-              "stringr", 
+Packages <- c("stringr", 
               "maps",
               "reshape2",
               "ggplot2",
@@ -8,8 +7,6 @@ Packages <- c("PWFSLSmoke",
               "stringr", 
               "lubridate", 
               "tigris", 
-              "leaflet",
-              "MazamaSpatialUtils",
               "SpecsVerification",
               "corrplot",
               "ggExtra",
@@ -26,7 +23,7 @@ Packages <- c("PWFSLSmoke",
               "purrr",
               "ggpubr",
               "usmap",
-              # "DEGreport",
+              "rstudioapi",
               "wesanderson"
               
 )
@@ -39,12 +36,11 @@ setwd(current.dir)
 
 
 # Assign file paths ----------------------------------------------------------------
-dat.dir <- file.path("./sample_data")
-out.dir <- file.path("./proc_outputs")
+dat.dir <- file.path("../sample_data")
+out.dir <- file.path("../proc_outputs")
 
 # Combined county level pop-weighted BlueSky data and AQS monitor data
-NAM_2015_Comp <- read.csv(file = file.path(dat.dir,  "pop_exp_data", "Processed_NAM_2015", 
-                                           "Comparison_Dataset_NAM_AQS_2015.csv"), 
+NAM_2015_Comp <- read.csv(file = file.path(dat.dir, "Comparison_Dataset_NAM_AQS_2015.csv"), 
                           colClasses = c("character", rep("numeric", 4), "character", rep("numeric", 4)), 
                           col.names = c("Date","Year", "CTFIPS","FIPS5", 
                                         "AQS_Site_ID", "Location", "Grid _ID", 
@@ -57,12 +53,12 @@ NAM_2015_Comp <- read.csv(file = file.path(dat.dir,  "pop_exp_data", "Processed_
                                   "Off")))
 
 # NCHS Urban-Rural Classification Codes
-UrbRurCodes <- read_xlsx(path = file.path(dat.dir,  "spatial_data", "NCHSURCodes2013.xlsx"), 
+UrbRurCodes <- read_xlsx(path = file.path(dat.dir, "NCHSURCodes2013.xlsx"), 
                          col_types = c("numeric", rep("text", 2), rep("skip", 3), "numeric", rep("skip", 2)), 
                          col_names = c("FIPS5","ST_Abbr", "CTY_NAME", "UR_CODE"), skip = 1)
 
 # Read in population data
-cnty_pop_14_18 <- read.csv(file= file.path(dat.dir, "pop_exp_data", "County_smk_2014_2019", "County_pop_yr_1418.csv"),
+cnty_pop_14_18 <- read.csv(file= file.path(dat.dir, "County_pop_yr_1418.csv"),
                            colClasses = rep("numeric", 3), 
                            col.names = c("FIPS5", "Year", "POP"))
 
@@ -79,79 +75,12 @@ rm(NAM_2015_Comp)
 
 
 # County-level smoke data
-smk_files <- list.files(path=file.path(dat.dir, "pop_exp_data", "County_smk_2014_2019"),
-                        pattern = "County_smk", full.names = F, recursive = F)
-cnty_smk_14_19 <- smk_files %>%
-  purrr:::map(~ read_csv(file.path(dat.dir, "pop_exp_data", "County_smk_2014_2019", .))) %>%
-  reduce(rbind) %>%
-  dplyr::select(1:6) %>%
-  dplyr::mutate_at(1, as.numeric) %>%
-  dplyr::rename("Date" = "date",
-                "DY_Mean" = "daily_meanSMK",
-                "DY_Med"  = "daily_medianSMK",
-                "DY_Min"  = "daily_minSMK",
-                "DY_Max"  = "daily_maxSMK") %>%
-  dplyr::mutate(YMD = as.Date(Date, format =  "%d%b%Y"),
-                Year = year(as.Date(Date, format =  "%d%b%Y")),
-                Month = month(as.Date(Date, format =  "%d%b%Y"), label = T, abbr = F),
-                YrDy = yday(as.Date(Date, format =  "%d%b%Y")),
-                mntDy = mday(as.Date(Date, format =  "%d%b%Y")),
-                Season = time2season(as.Date(Date, format =  "%d%b%Y"), out.fmt = "seasons", type="default"),
-                Quarter = quarter(as.Date(Date, format =  "%d%b%Y"), fiscal_start = 12),
-                Szn_st = if_else(month(as.Date(Date, format =  "%d%b%Y")) == 12,
-                                 paste("01","DEC", year(as.Date(Date, format =  "%d%b%Y")), sep=""),
-                                 if_else(month(as.Date(Date, format =  "%d%b%Y")) %in% c(1,2),
-                                         paste("01","DEC", year(as.Date(Date, format =  "%d%b%Y"))-1, sep=""),
-                                         if_else(month(as.Date(Date, format =  "%d%b%Y")) %in% c(3,4,5),
-                                                 paste("01","MAR", year(as.Date(Date, format =  "%d%b%Y")), sep=""),
-                                                 if_else(month(as.Date(Date, format =  "%d%b%Y")) %in% c(6,7,8),
-                                                         paste("01","JUN", year(as.Date(Date, format =  "%d%b%Y")), sep=""),
-                                                         paste("01","SEP", year(as.Date(Date, format =  "%d%b%Y")), sep=""))))),
-                SznDy = time_length(interval(as.Date(if_else(month(as.Date(Date, format =  "%d%b%Y")) == 12,
-                                                             paste("01","DEC", year(as.Date(Date, format =  "%d%b%Y")), sep=""),
-                                                             if_else(month(as.Date(Date, format =  "%d%b%Y")) %in% c(1,2),
-                                                                     paste("01","DEC", year(as.Date(Date, format =  "%d%b%Y"))-1, sep=""),
-                                                                     if_else(month(as.Date(Date, format =  "%d%b%Y")) %in% c(3,4,5),
-                                                                             paste("01","MAR", year(as.Date(Date, format =  "%d%b%Y")), sep=""),
-                                                                             if_else(month(as.Date(Date, format =  "%d%b%Y")) %in% c(6,7,8),
-                                                                                     paste("01","JUN", year(as.Date(Date, format =  "%d%b%Y")), sep=""),
-                                                                                     paste("01","SEP", year(as.Date(Date, format =  "%d%b%Y")), sep=""))))), format =  "%d%b%Y"),
-                                             as.Date(Date, format =  "%d%b%Y")), "day") + 1) 
-
-
-# Join count smoke data with poulation data
-cnty_smk_pop <-  cnty_smk_14_19 %>% left_join(cnty_pop_14_18, by = c("FIPS5", "Year"))
-rm(cnty_smk_14_19, cnty_pop_14_18)
-
-
 # Read in and process US county map data ----------------------------------------------------------------
-US_Cty <- st_read(dsn=file.path(dat.dir, "spatial_data", "gz_2010_us_050_00_20m.shp"))
-US_St <- st_read(dsn=file.path(dat.dir, "spatial_data", "cb_2018_us_state_20m", "cb_2018_us_state_20m.shp"))
-NCDC_bdry  <-  st_read(dsn=file.path(dat.dir, "spatial_data", "US_Climate_Regions", "county_NCDC_Dissolve.shp")) %>%
+US_Cty <- st_read(dsn=file.path(dat.dir, "us_county_bdry", "gz_2010_us_050_00_20m.shp"))
+US_St <- st_read(dsn=file.path(dat.dir, "us_state_bdry", "cb_2018_us_state_20m.shp"))
+NCDC_bdry  <-  st_read(dsn=file.path(dat.dir, "ncdc_regions", "county_NCDC_Dissolve.shp")) %>%
   st_make_valid() %>% st_transform("+init=epsg:4269") %>% dplyr::rename("Clim_Reg" = "NCDC_regio")
 
-ClimReg_bdry  <-  st_read(dsn=file.path(dat.dir, "spatial_data", "US_Climate_Regions", "climate_region_boundary.shp")) %>% 
-  mutate(Clim_Reg = case_when(SUB_REGION == "E S Cen" ~ "East South\n Central",
-                              SUB_REGION == "E N Cen" ~ "East North\n Central",
-                              SUB_REGION == "S Atl" ~ "South\n Atlantic",
-                              SUB_REGION == "Pacific" ~ "Pacific             ",
-                              SUB_REGION == "W N Cen" ~ "West North\n Central",
-                              SUB_REGION == "W S Cen" ~ "West South\n Central",
-                              SUB_REGION == "N Eng" ~ "New\n England",
-                              SUB_REGION == "Mid Atl" ~ "Mid Atlantic",
-                              SUB_REGION == "Mtn" ~ "Mountain")) %>%
-  st_make_valid() %>% st_transform("+init=epsg:4269")
-ClimReg  <- st_read(dsn=file.path(dat.dir, "spatial_data", "US_Climate_Regions", "climate_regions.shp")) %>% 
-  mutate(Clim_Reg = case_when(SUB_REGION == "E S Cen" ~ "East South\n Central",
-                              SUB_REGION == "E N Cen" ~ "East North\n Central",
-                              SUB_REGION == "S Atl" ~ "South\n Atlantic",
-                              SUB_REGION == "Pacific" ~ "Pacific             ",
-                              SUB_REGION == "W N Cen" ~ "West North\n Central",
-                              SUB_REGION == "W S Cen" ~ "West South\n Central",
-                              SUB_REGION == "N Eng" ~ "New\n England",
-                              SUB_REGION == "Mid Atl" ~ "Mid Atlantic",
-                              SUB_REGION == "Mtn" ~ "Mountain")) %>%
-  st_make_valid() %>% st_transform("+init=epsg:4269")
 # leave out AK, HI, and PR (state FIPS: 02, 15, and 72)
 US_CON_Cty <- US_Cty[!(US_Cty$STATE %in% c("02","15","72")),]
 US_CON_St <- US_St[!(US_St$STATEFP %in% c("02","15","72")),] 
@@ -159,26 +88,19 @@ US_CON_St <- US_St[!(US_St$STATEFP %in% c("02","15","72")),]
 US_CON_Cty$FIPS5 <- as.numeric(paste0(US_CON_Cty$STATE, US_CON_Cty$COUNTY) %>% str_remove("^0+"))
 # US_WF_Cty$FIPS5 <- as.numeric(paste0(US_WF_Cty$STATE, US_WF_Cty$COUNTY) %>% str_remove("^0+"))
 
-# # Create map of county boundaries for overlay with climate region areas areas
-# centroids  <- sf::st_centroid(US_CON_Cty)
-# inters <- sf::st_intersection(ClimReg, centroids) %>% sf::st_set_geometry(NULL)
-# ClimReg_Cnty <- dplyr::left_join(US_CON_Cty, inters) %>% sf::st_sf(sf_column_name = "geometry")
-# rm("inters", "centroids")
-
 # Create map of county boundaries for overlay with NCDC region areas areas
 centroids  <- sf::st_centroid(US_CON_Cty)
 inters <- sf::st_intersection(NCDC_bdry, centroids) %>% sf::st_set_geometry(NULL)
 NCDC_Cnty <- dplyr::left_join(US_CON_Cty, inters) %>% sf::st_sf(sf_column_name = "geometry")
 rm("inters", "centroids")
 
+########### Calculating and mapping monitor statistics ------
 
-# Calculating and mapping monitor statistics ------
-
-# Number of counties in each climate region
+# Determining number of counties in each climate region
 NCDC_Cnty %>%
   group_by(Clim_Reg) %>% dplyr::summarise(length(unique(FIPS5)))
 
-# number of monitors per climate region
+# Calculating number of monitors per climate region
 NCDC_Cnty %>% 
   left_join(NAM_2015_Comp_Codes) %>%
   filter(!is.na(AQS_Site_ID)) %>% 
@@ -192,7 +114,7 @@ NCDC_Cnty %>%
   group_by(Clim_Reg) %>%
   dplyr::summarise(length(unique(FIPS5)))
 
-# Population fraction of climate regions
+# Population fraction of each climate region
 NCDC_Cnty %>% 
   left_join(NAM_2015_Comp_Codes) %>%
   group_by(Clim_Reg) %>% 
@@ -224,7 +146,7 @@ NCDC_Cnty %>% left_join(UrbRurCodes) %>%
   st_set_geometry(NULL) %>% print(n=40)
 
 
-# Number of AQS monitors per county
+# Map number of AQS monitors per county
 tmap_mode("plot")
 monitor_count <- NAM_2015_Comp_Codes %>% group_by(FIPS5) %>% 
   summarise(MCount = as.numeric(length(unique(AQS_Site_ID)))) %>%
@@ -257,38 +179,7 @@ monitor_count <- NAM_2015_Comp_Codes %>% group_by(FIPS5) %>%
             legend.title.size = 0.6,
             legend.text.size=0.5,
             frame = FALSE)
-tmap_save(monitor_count, filename=file.path(out.dir,"BlueSky_eval_pop", "AQS_monitor_county.png"), width=1080, height=960, asp=0)
-
-
-# test ggplot2 plotting vs tmap 
-# monitor_count2 <- NAM_2015_Comp_Codes %>% group_by(FIPS5) %>% 
-#   summarise(MCount = as.numeric(length(unique(AQS_Site_ID)))) %>%
-#   left_join(NCDC_Cnty) %>% 
-#   st_sf() %>%
-#   ggplot()  +
-#   geom_sf(aes(fill = MCount), size =0.1, color="grey10") +
-#   geom_sf(data = US_CON_Cty, aes(color=STATES), color="grey90",  alpha = 0.1, fill=NA, size=0.1) +
-#   geom_sf(data = US_CON_St, aes(color=STATES), color="grey65",  alpha = 0.1, fill=NA, size=0.1) +
-#   geom_sf(data = ClimReg_bdry, aes(color=Clim_Reg), color="grey10",  alpha = 0.7, fill=NA, size=0.45) +
-#   geom_sf_text(data = ClimReg_bdry, aes(label = Clim_Reg), colour = "black") +
-#   coord_sf(crs ="+init=epsg:2163") +
-#   scale_fill_gradientn(name = "Monitor Count", na.value="grey50",
-#                        limits = c(0,  15),
-#                        colours = get_brewer_pal("BuPu", n = 20, contrast = c(0, 1.0))) +
-#   theme_void() +
-#   labs(title = "Number of AQS Monitors per County, 2015 ") +
-#   guides(fill = guide_colourbar(barwidth = 1.5, barheight = 8, draw.ulim = FALSE, draw.llim = FALSE, frame.colour = "Gray80")) +
-#   theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-#         panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"),
-#         panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-#         plot.title = element_text(hjust = 0.5, size = 18),
-#         plot.subtitle = element_text(hjust = 0.5, size = 12),
-#         legend.text = element_text(margin = margin(t = 10)),
-#         legend.justification = c(1.0, 0.5),
-#         legend.position = c(1.03, 0.26),
-#         legend.box.margin=margin(c(50,50,50,50)))
-# ggsave(plot=monitor_count2, filename = file.path(out.dir, "BlueSky_eval_pop", "AQS_monitor_county2.png"),
-#        width = 10, height = 8, dpi = 300, units = "in", device='png')
+tmap_save(monitor_count, filename=file.path(out.dir, "AQS_monitor_county.png"), width=1080, height=960, asp=0)
 
 
 # Mapping metro classes of every  county
@@ -329,11 +220,11 @@ metro_class <- NAM_2015_Comp_Codes %>%
             legend.text.size=0.4,
             legend.width = 1.0,
             frame = FALSE)
-tmap_save(metro_class, filename=file.path(out.dir,"BlueSky_eval_pop", "county_metro_class.png"), width=1080, height=960, asp=0)
+tmap_save(metro_class, filename=file.path(out.dir, "county_metro_class.png"), width=1080, height=960, asp=0)
 
 
 
-# Calculating the total population of residing in counties with no monitoring
+# Calculating amd plotting the total population residing in counties with no monitoring
 tmap_mode("plot")
 no_monit_cnty <- cnty_pop_14_18 %>% filter(Year==2015) %>%
   left_join(NAM_2015_Comp_Codes) %>%
@@ -366,7 +257,7 @@ no_monit_cnty <- cnty_pop_14_18 %>% filter(Year==2015) %>%
             legend.text.size=0.4,
             legend.width = 1.0,
             frame = FALSE)
-tmap_save(no_monit_cnty, filename=file.path(out.dir,"BlueSky_eval_pop", "pop_non_monit.png"), width=1080, height=960, asp=0)
+tmap_save(no_monit_cnty, filename=file.path(out.dir, "pop_non_monit.png"), width=1080, height=960, asp=0)
 
 
 
@@ -404,7 +295,7 @@ mon_rep_frac <- NAM_2015_Comp_Codes %>%
             legend.text.size=0.4,
             legend.width = 1.0,
             frame = FALSE)
-tmap_save(mon_rep_frac, filename=file.path(out.dir,"BlueSky_eval_pop", "county_monit_days.png"), width=1080, height=960, asp=0)
+tmap_save(mon_rep_frac, filename=file.path(out.dir, "county_monit_days.png"), width=1080, height=960, asp=0)
 
 
 # mapping 2015 smoke day and person days of exposure ----------------
@@ -487,7 +378,7 @@ clim_cnty_smk <- NAM_2015_Comp_Codes %>% left_join(NCDC_Cnty) %>%
         axis.text.y  = element_text(colour = "black",  size = 15)) 
 ggsave(filename="NAM_clim_smk_per_bar.png", plot=clim_cnty_smk, device="png", 
        width = 10, height = 8, dpi = 300, units = "in",
-       path = file.path(out.dir, "BlueSky_eval_pop"))
+       path = file.path(out.dir))
 
 
 
@@ -509,145 +400,6 @@ met_szn_cnty_smk <- NAM_2015_Comp_Codes %>%
             NAM_smk_dy_szn = sum(NAM_smk_dy_ct, na.rm = T), 
             NAM_per_dys_szn = sum(NAM_sum_per_dys, na.rm = T))
 
-
-# mapping total smoke days grouped by calendar seasons across all counties
-AQS_szn_cnty_smk_dys <- NAM_2015_Comp_Codes %>% 
-  mutate(smk_dy = ifelse(PM_AQS_Mean >= 20, 1, 0), per_dy = POP * ifelse(PM_AQS_Mean >= 20, 1, 0)) %>%
-  group_by(FIPS5, Season) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), sum_per_dys = sum(per_dy, na.rm = T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>%
-  group_by(Season) %>% mutate(max=max(smk_dy_ct)) %>%
-  nest() %>%
-  mutate(plot= map2(data, Season, ~ggplot(data=.x) +
-                      geom_sf(aes(fill = smk_dy_ct), size =0.1, color="grey55") +
-                      geom_sf(data = US_CON_Cty, aes(color=STATES), color="grey90",  alpha = 0.1, fill=NA, size=0.1) +
-                      geom_sf(data = US_CON_St, aes(color=STATES), color="grey65",  alpha = 0.2, fill=NA, size=0.1) +
-                      # geom_sf(data = GACC, aes(color=GACCAbbrev), color="grey10",  alpha = 0.7, fill=NA, size=0.3) +
-                      # geom_sf_text(data = GACC, aes(label = GACCAbbrev), colour = "black") +
-                      coord_sf(crs ="+init=epsg:2163") +
-                      scale_fill_gradientn(name = "Smoke Days", na.value="grey50",
-                                           limits = c(0, 140),
-                                           colours = c("#FFFFFC", get_brewer_pal("YlOrRd", n = 40, contrast = c(0.2, 1.0)))) +
-                      theme_void() +
-                      labs(title = Season, subtitle = (expression(paste("AQS 2015 County-level number of smoke days", ~"[Daily Mean ",PM[2.5], ~"> 20",mu*g*m^{-3},"]")))) +
-                      guides(fill = guide_colourbar(barwidth = 1.5, barheight = 8, draw.ulim = FALSE, draw.llim = FALSE, frame.colour = "Gray80")) +
-                      theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-                            panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-                            panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-                            plot.title = element_text(hjust = 0.5, size = 18),
-                            plot.subtitle = element_text(hjust = 0.5, size = 12),
-                            legend.text = element_text(margin = margin(t = 10)),
-                            legend.justification = c(1.0, 0.5), 
-                            legend.position = c(1.03, 0.26),
-                            legend.box.margin=margin(c(50,50,50,50)))
-  ))
-plot_names <- file.path(out.dir, "BlueSky_eval_pop", "cnty_smk_dys", paste("AQS", c("AUT", "SPR", "SUM", "WIN"), "cnty_smk_dys.png", sep="_"))
-map2(plot_names, AQS_szn_cnty_smk_dys$plot, ggsave, width = 10, height = 8, dpi = 300, units = "in", device='png')
-
-
-# mapping total person days of exposure grouped by calendar seasons across all counties
-AQS_szn_cnty_per_dys <- NAM_2015_Comp_Codes %>% 
-  mutate(smk_dy = ifelse(PM_AQS_Mean >= 20, 1, 0), per_dy = POP * ifelse(PM_AQS_Mean >= 20, 1, 0)) %>%
-  group_by(FIPS5, Season) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), sum_per_dys = sum(per_dy, na.rm = T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>%
-  group_by(Season) %>% mutate(max=max(sum_per_dys)) %>%
-  nest() %>%
-  mutate(plot= map2(data, Season, ~ggplot(data=.x) +
-                      geom_sf(aes(fill = sum_per_dys), size =0.1, color="grey55") +
-                      geom_sf(data = US_CON_Cty, aes(color=STATES), color="grey90",  alpha = 0.1, fill=NA, size=0.1) +
-                      geom_sf(data = US_CON_St, aes(color=STATES), color="grey65",  alpha = 0.1, fill=NA, size=0.1) +
-                      # geom_sf(data = GACC, aes(color=GACCAbbrev), color="grey10",  alpha = 0.7, fill=NA, size=0.3) +
-                      # geom_sf_text(data = GACC, aes(label = GACCAbbrev), colour = "black") +
-                      coord_sf(crs ="+init=epsg:2163") +
-                      scale_fill_gradientn(name = "Person Days", na.value="grey50",
-                                           limits = c(0, 1.15e9),
-                                           colours = c("#FFFFFC", get_brewer_pal("YlOrRd", n = 1000, contrast = c(0.2, 1.0)))) +
-                      theme_void() +
-                      labs(title = Season, subtitle = (expression(paste("AQS 2015 County-level person-days of exposure during smoke days", ~"[Daily Mean ",PM[2.5], ~"> 20",mu*g*m^{-3},"]")))) +
-                      guides(fill = guide_colourbar(barwidth = 1.5, barheight = 8, draw.ulim = FALSE, draw.llim = FALSE, frame.colour = "Gray80")) +
-                      theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-                            panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-                            panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-                            plot.title = element_text(hjust = 0.5, size = 18),
-                            plot.subtitle = element_text(hjust = 0.5, size = 12),
-                            legend.text = element_text(margin = margin(t = 10)),
-                            legend.justification = c(1.0, 0.5), 
-                            legend.position = c(1.03, 0.26),
-                            legend.box.margin=margin(c(50,50,50,50)))
-  ))
-plot_names <- file.path(out.dir, "BlueSky_eval_pop", "cnty_pers_dys", paste("AQS", c("AUT", "SPR", "SUM", "WIN"), "cnty_per_dys.png", sep="_"))
-map2(plot_names, AQS_szn_cnty_per_dys$plot, ggsave, width = 10, height = 8, dpi = 300, units = "in", device='png')
-
-
-# mapping total smoke days grouped by wildfire seasons across all counties
-AQS_wfszn_cnty_smk_dys <- NAM_2015_Comp_Codes %>% 
-  mutate(smk_dy = ifelse(PM_AQS_Mean >= 20, 1, 0), per_dy = POP * ifelse(PM_AQS_Mean >= 20, 1, 0)) %>%
-  group_by(FIPS5, wf_szn) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), sum_per_dys = sum(per_dy, na.rm = T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>%
-  group_by(wf_szn) %>% mutate(max=max(smk_dy_ct)) %>%
-  nest() %>%
-  mutate(plot= map2(data, wf_szn, ~ggplot(data=.x) +
-                      geom_sf(aes(fill = smk_dy_ct), size =0.1, color="grey55") +
-                      geom_sf(data = US_CON_Cty, aes(color=STATES), color="grey90",  alpha = 0.1, fill=NA, size=0.1) +
-                      geom_sf(data = US_CON_St, aes(color=STATES), color="grey65",  alpha = 0.2, fill=NA, size=0.1) +
-                      # geom_sf(data = GACC, aes(color=GACCAbbrev), color="grey10",  alpha = 0.7, fill=NA, size=0.3) +
-                      # geom_sf_text(data = GACC, aes(label = GACCAbbrev), colour = "black") +
-                      coord_sf(crs ="+init=epsg:2163") +
-                      scale_fill_gradientn(name = "Smoke Days", na.value="grey50",
-                                           limits = c(0, 177),
-                                           colours = c("#FFFFFC", get_brewer_pal("YlOrRd", n = 45, contrast = c(0.2, 1.0)))) +
-                      theme_void() +
-                      labs(title = wf_szn, subtitle = (expression(paste("AQS 2015 County-level number of smoke days", ~"[Daily Mean ",PM[2.5], ~"> 20",mu*g*m^{-3},"]")))) +
-                      guides(fill = guide_colourbar(barwidth = 1.5, barheight = 8, draw.ulim = FALSE, draw.llim = FALSE, frame.colour = "Gray80")) +
-                      theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-                            panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-                            panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-                            plot.title = element_text(hjust = 0.5, size = 18),
-                            plot.subtitle = element_text(hjust = 0.5, size = 12),
-                            legend.text = element_text(margin = margin(t = 10)),
-                            legend.justification = c(1.0, 0.5), 
-                            legend.position = c(1.03, 0.26),
-                            legend.box.margin=margin(c(50,50,50,50)))
-  ))
-plot_names <- file.path(out.dir, "BlueSky_eval_pop", "cnty_smk_dys", paste("AQS", c("Early", "Off", "Peak"), "wfszn_cnty_smk_dys.png", sep="_"))
-map2(plot_names, AQS_wfszn_cnty_smk_dys$plot, ggsave, width = 10, height = 8, dpi = 300, units = "in", device='png')
-
-
-# mapping total person days of exposure grouped by wildfire seasons across all counties
-AQS_wfszn_cnty_per_dys <- NAM_2015_Comp_Codes %>% 
-  mutate(smk_dy = ifelse(PM_AQS_Mean >= 20, 1, 0), per_dy = POP * ifelse(PM_AQS_Mean >= 20, 1, 0)) %>%
-  group_by(FIPS5, wf_szn) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), sum_per_dys = sum(per_dy, na.rm = T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>%
-  group_by(wf_szn) %>% mutate(max=max(sum_per_dys)) %>%
-  nest() %>%
-  mutate(plot= map2(data, wf_szn, ~ggplot(data=.x) +
-                      geom_sf(aes(fill = sum_per_dys), size =0.1, color="grey55") +
-                      geom_sf(data = US_CON_Cty, aes(color=STATES), color="grey90",  alpha = 0.1, fill=NA, size=0.1) +
-                      geom_sf(data = US_CON_St, aes(color=STATES), color="grey65",  alpha = 0.1, fill=NA, size=0.1) +
-                      # geom_sf(data = GACC, aes(color=GACCAbbrev), color="grey10",  alpha = 0.7, fill=NA, size=0.3) +
-                      # geom_sf_text(data = GACC, aes(label = GACCAbbrev), colour = "black") +
-                      coord_sf(crs ="+init=epsg:2163") +
-                      scale_fill_gradientn(name = "Person Days", na.value="grey50",
-                                           limits = c(0,  1.15e9),
-                                           colours = c("#FFFFFC", get_brewer_pal("YlOrRd", n = 1e3, contrast = c(0.2, 1.0)))) +
-                      theme_void() +
-                      labs(title = wf_szn, subtitle = (expression(paste("AQS 2015 County-level person-days of exposure during smoke days", ~"[Daily Mean ",PM[2.5], ~"> 20",mu*g*m^{-3},"]")))) +
-                      guides(fill = guide_colourbar(barwidth = 1.5, barheight = 8, draw.ulim = FALSE, draw.llim = FALSE, frame.colour = "Gray80")) +
-                      theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-                            panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-                            panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-                            plot.title = element_text(hjust = 0.5, size = 18),
-                            plot.subtitle = element_text(hjust = 0.5, size = 12),
-                            legend.text = element_text(margin = margin(t = 10)),
-                            legend.justification = c(1.0, 0.5), 
-                            legend.position = c(1.03, 0.26),
-                            legend.box.margin=margin(c(50,50,50,50)))
-  ))
-plot_names <- file.path(out.dir, "BlueSky_eval_pop", "cnty_pers_dys", paste("AQS", c("Early", "Off", "Peak"), "wfszn_per_dys.png", sep="_"))
-map2(plot_names, AQS_wfszn_cnty_per_dys$plot, ggsave, width = 10, height = 8, dpi = 300, units = "in", device='png')
 
 
 # mapping yearly average smoke days  across all counties
@@ -716,213 +468,7 @@ ggsave(plot=AQS_ave_cnty_per_dys, filename = file.path(out.dir, "BlueSky_eval_po
        width = 10, height = 8, dpi = 300, units = "in", device='png')
 
 
-
-# mapping 2014-2019 smoke day and person days of exposure ------------------------------------------
-
-# Calculating and mapping the number of smoke days per county per year
-# Here we calculate the fraction of all counties with at lest one smoke day (daily max PM2.5 concentration greater than 20ug/m3)
-frac_cnty_smk <- cnty_smk_pop %>% 
-  mutate(smk_dy = ifelse(DY_Max >= 20, 1, 0), per_dy = POP * ifelse(DY_Max >= 20, 1, 0)) %>%
-  group_by(FIPS5, Year) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), yr_per_dys = sum(per_dy, na.rm = T)) %>%
-  # filter(smk_dy_ct > 0) %>%
-  filter(smk_dy_ct > 0 & Year == 2015) %>%
-  group_by(Year) %>%
-  # summarise(frac = n_distinct(FIPS5)/3109 * 100, per_dys = sum(yr_per_dys))
-  summarise(smk_cnty = n_distinct(FIPS5), frac = n_distinct(FIPS5)/3109 * 100, per_dys = sum(yr_per_dys))
-
-# Here we calculate the fraction of counties in fire sensitive states with at lest one smoke day (daily max PM2.5 concentration greater than 20ug/m3)
-frac_firecnty_smk <- cnty_smk_pop %>% left_join(UrbRurCodes, by = "FIPS5") %>%
-  filter(ST_Abbr %in% c("WA", "OR", "CA", "ID", "NV", "UT", "AZ", "MT", "WY", "CO", "NM")) %>%
-  mutate(smk_dy = ifelse(DY_Max >= 20, 1, 0), per_dy = POP * ifelse(DY_Max >= 20, 1, 0)) %>%
-  group_by(FIPS5, Year) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), yr_per_dys = sum(per_dy, na.rm = T)) %>%
-  filter(smk_dy_ct > 0 & Year == 2015) %>%
-  # filter(smk_dy_ct > 0) %>%
-  group_by(Year) %>%
-  summarise(smk_cnty = n_distinct(FIPS5), frac = n_distinct(FIPS5)/414 * 100, per_dys = sum(yr_per_dys))
-
-
-#Calculation of daily max smoke concentration by month
-frac_cnty_smk_plt <- cnty_smk_pop %>% drop_na(DY_Max) %>%
-  ggplot(., aes(x = YMD, y=DY_Max)) +
-  geom_point(aes(color = cut(DY_Max, c(-Inf, 20, Inf)), size = cut(DY_Max, c(-Inf, 20, Inf))), alpha=I(0.5)) + 
-  scale_color_manual(name = "DyMax PM2.5",
-                     values = c("(-Inf,20]" = "gray50", "(20, Inf]" = "red"),
-                     labels = c("<= 20",  "> 20")) +
-  scale_size_manual(values = c("(-Inf,20]" = 2, "(20, Inf]" = 2)) +
-  theme_bw() +
-  # geom_point(color = "darkorchid4", alpha = 0.3, size =  0.6) +
-  labs(title = "Population WF Smoke Exposure - 2015",
-       y = "Daily maximum WF smoke pm2.5 [ug/m3]",
-       x = "Date") + 
-  theme_bw(base_size = 15) +
-  # adjust the x axis breaks
-  scale_x_date(date_breaks = "1 years", date_labels = "%Y") +
-  theme(axis.title.x = element_text(colour = "black",  size = 25, margin = margin(20,0,0,0)),
-        axis.title.y = element_text(colour = "black",  size = 25, margin = margin(0,10,0,0)),
-        axis.text.x  = element_text(colour = "black",  size = 25),
-        axis.text.y  = element_text(colour = "black",  size = 25),
-        panel.border = element_rect(colour = "grey75", size = 0.85),
-        axis.line    = element_line(colour = "grey75", size = 0.85)) 
-ggsave(filename="wf_temp_mnt.png", plot=frac_cnty_smk_plt, device="png", path = file.path(out.dir, "proc_pop_exp"))
-
-
-# Plot daily max WF Smoke conc -- by season
-wf_temp_mnt <- cnty_smk_pop %>% drop_na(DY_Max) %>% filter(Year==2015) %>%
-  ggplot(., aes(x = SznDy, y=DY_Max)) +
-  geom_point(color = "red", alpha = 0.5, size =  1.1) +
-  # geom_jitter(color="red") +
-  facet_wrap( ~ Season ) +
-  labs(title = "",
-       y = expression(Daily~maximum~WF~smoke~PM[2.5]~paste(mu, "g") %.% m^{-3}),
-       x = "Day of Season") + theme_bw(base_size = 20) +
-  xlim(c(1, 93)) + 
-  ylim(c(0, 7000)) +
-  theme(panel.background = element_rect(fill="white",colour ="lightblue",size=0.5,linetype="solid"),
-        panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-        panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-        plot.title = element_text(hjust = 0.5, size = 13),
-        axis.text.x = element_text(size = 20),
-        axis.text.y = element_text(size = 20),
-        strip.text.x = element_text(size = 20, color = "black"))
-ggsave(filename="season_dymax2.png", plot=wf_temp_mnt, device="png", path = file.path(out.dir, "BlueSky_eval_pop"))
-
-
-
-
-# Here we plot the number of smoke days (daily max PM2.5 concentration greater than 20ug/m3) per county 
-tmap_mode("plot")
-cnty_smk <- cnty_smk_pop %>% mutate(smk_dy = ifelse(DY_Max >= 20, 1, 0), per_dy = POP * ifelse(DY_Max >= 20, 1, 0)) %>%
-  group_by(FIPS5, Year) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), yr_per_dys = sum(per_dy, na.rm = T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>%
-  tm_shape(projection="+init=epsg:2163") +
-  tm_polygons(col= "smk_dy_ct", legend.is.portrait = F,
-              style = "fixed",
-              showNA=F,
-              breaks = c(0, 5, 20, 50, 80, +Inf),
-              # labels = c("0", "1", "5", "50", "100"),
-              legend.format = list(text.separator= "-"),
-              palette = get_brewer_pal("OrRd", n = 5, contrast = c(0.0, 1.0)),
-              border.col = "grey90", lwd=0.15,
-              title = "# of Days with PM2.5 Conc. > 20\u03bcg/m\u00B3") +
-  tm_facets(by = "Year", free.coords = FALSE, ncol = 2, free.scales=FALSE, scale.factor=1.4) +
-  tm_shape(US_CON_St) +
-  tm_borders(lwd=0.2, col = "black", alpha = .4) +
-  tm_layout(main.title= "County-level Smoke Days, 2014 - 2019", 
-            main.title.position = "center",
-            main.title.size = 0.6,
-            legend.title.size = 0.5,
-            legend.width = 2.0,
-            legend.text.size=0.4,
-            legend.outside = TRUE,
-            legend.outside.position = "bottom",
-            legend.outside.size=0.07,
-            legend.position = c("center", "bottom"),
-            legend.just = "center",
-            panel.label.size = 0.7,
-            panel.label.height = 1.3,
-            panel.label.bg.color = 'grey95',
-            panel.label.color = 'black',
-            inner.margins = c(0.06, 0.06, 0.06, 0.06),
-            frame = FALSE)
-tmap_save(cnty_smk, filename=file.path(out.dir,"BlueSky_eval_pop", "cnty_smk_dys.png"), width=1080, height=1800, asp=0)
-
-
-
-
-cnty_smk_dys <- cnty_smk_pop %>%
-  filter(Year %in% c(2014:2018)) %>%
-  mutate(smk_dy = ifelse(DY_Max >= 20, 1, 0), per_dy = POP * ifelse(DY_Max >= 20, 1, 0)) %>%
-  group_by(FIPS5, Year) %>%
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), yr_per_dys = sum(per_dy, na.rm = T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% 
-  st_sf() %>%
-  group_by(Year) %>% 
-  nest() %>%
-  mutate(plot= map2(data, Year, ~ggplot(data=.x) +
-                      geom_sf(aes(fill = smk_dy_ct), size =0.04, color="grey75") +
-                      geom_sf(data = US_states, aes(color=STATES), color="grey10",  alpha = 0, fill=NA, size=0.1) +
-                      coord_sf(crs ="+init=epsg:2163") +
-                      scale_fill_gradientn(name = "Smoke Days", na.value="transparent",
-                                           limits = c(0, 85),
-                                           colours = c("#FFFFFF", get_brewer_pal("YlOrRd", n = 10, contrast = c(0.0, 1.0)))) +
-                      theme_void() +
-                      labs(title = Year, subtitle = "County-level number of smoke days (PM2.5 Conc. > 20\u03bcg/m\u00B3)") +
-                      theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-                            panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-                            panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-                            plot.title = element_text(hjust = 0.5, size = 18),
-                            plot.subtitle = element_text(hjust = 0.5, size = 12),
-                            legend.text = element_text(margin = margin(t = 10)),
-                            legend.justification = c(1.0, 0.5), 
-                            legend.position = c(1.03, 0.26),
-                            legend.box.margin=margin(c(50,50,50,50)))
-  ))
-plot_names <- file.path(out.dir, "BlueSky_eval_pop", "cnty_smk_dys", paste(2014:2018, "cnty_smk_dys.png", sep="_"))
-map2(plot_names, cnty_smk_dys$plot, ggsave, width = 10, height = 8, dpi = 300, units = "in", device='png')
-
-curdir <- getwd()
-source(file=file.path("~/Google Drive File Stream/My Drive/CDC_NCAR_Docs/CDC-ONDIEH-NCEH_CH_Prog/wildfires/scripts/smooth_Gif.R"))
-setwd(file.path(out.dir, "BlueSky_eval_pop", "cnty_smk_dys"))
-smooth_Gif(path_to_images = "./", pattern = "*.png", label = "2014-2018_cnty_smk_dys", interval = "50")
-setwd(curdir)
-
-
-cnty_pers_dys <- cnty_smk_pop %>% 
-  filter(Year %in% c(2014:2018)) %>%
-  mutate(smk_dy = ifelse(DY_Max >= 20, 1, 0), per_dy = POP * ifelse(DY_Max >= 20, 1, 0)) %>%
-  group_by(FIPS5, Year) %>%
-  summarise(yr_per_dys = sum(smk_dy, na.rm = T), yr_per_dys = sum(per_dy, na.rm = T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% 
-  st_sf() %>%
-  group_by(Year) %>% 
-  nest() %>%
-  mutate(plot= map2(data, Year, ~ggplot(data=.x) +
-                      geom_sf(aes(fill = yr_per_dys), size =0.05, color="grey80") +
-                      geom_sf(data = US_states, aes(color=STATES), color="grey10",  alpha = 0, fill=NA, size=0.13) +
-                      coord_sf(crs ="+init=epsg:2163") +
-                      scale_fill_gradientn(name = "Person-Days", na.value="transparent",
-                                           limits = c(10, 100000000),
-                                           trans = "log10",
-                                           colours = c("#FFFFFF", get_brewer_pal("YlOrRd", n = 10, contrast = c(0.0, 1.0))),
-                                           breaks = c(10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000)) +
-                      theme_void() +
-                      labs(title = Year, subtitle = "County-level person-days of exposure during smoke days (PM2.5 Conc. > 20\u03bcg/m\u00B3)") +
-                      theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-                            panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-                            panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-                            plot.title = element_text(hjust = 0.5, size = 18),
-                            plot.subtitle = element_text(hjust = 0.5, size = 12),
-                            legend.text = element_text(margin = margin(t = 10)),
-                            legend.justification = c(1.0, 0.5), 
-                            legend.position = c(1.03, 0.26),
-                            legend.box.margin=margin(c(50,50,50,50)))
-  ))
-plot_names <- file.path(out.dir, "BlueSky_eval_pop", "cnty_pers_dys", paste(2014:2018, "cnty_pers_dys.png", sep="_"))
-map2(plot_names, cnty_pers_dys$plot, ggsave, width = 10, height = 8, dpi = 300, units = "in", device='png')
-
-curdir <- getwd()
-source(file=file.path("~/Google Drive File Stream/My Drive/CDC_NCAR_Docs/CDC-ONDIEH-NCEH_CH_Prog/wildfires/scripts/smooth_Gif.R"))
-setwd(file.path(out.dir, "BlueSky_eval_pop", "cnty_pers_dys"))
-smooth_Gif(path_to_images = "./", pattern = "*.png", label = "2014-2018_cnty_pers_dys", interval = "50")
-setwd(curdir)
-
-
-
-# Combine gifs
-curdir <- getwd()
-source(file=file.path("~/Google Drive File Stream/My Drive/CDC_NCAR_Docs/CDC-ONDIEH-NCEH_CH_Prog/wildfires/scripts/gif_combine.R"))
-setwd(file.path(out.dir, "BlueSky_eval_pop", "combined_gif"))
-gifCombine(path_to_gifs = file.path("./"), pattern = "*.gif", comb = 2, tag = "multi")
-setwd(curdir)
-
-
-
-# 
 # Correlation analysis of 2015 smoke data ~ Metro areas ----------------------------------
-
 
 # Correlation: NAM vs AQS 
 corr_NAM_AQS <-  NAM_2015_Comp_Codes %>% 
@@ -964,11 +510,6 @@ corr_NAM_AQS <-  NAM_2015_Comp_Codes %>%
         legend.justification = c(1.0, 0.7), 
         legend.position = c(1.0, 0.85),
         legend.box.margin=margin(c(50,50,50,50)))
-
-# ggsave(filename="corr_AQS_NAM_August.png", plot=corr_NAM_AQS,
-#        path = file.path(out.dir, "BlueSky_eval_pop"),
-#        # width = 10, height = 5, 
-#        dpi = 300, units = "in", device='png')
 
 
 # Correlation: NAM vs AQS  - Western States _August
@@ -1013,12 +554,6 @@ corr_West <- NAM_2015_Comp_Codes %>%
         legend.position = c(1.0, 0.85),
         legend.box.margin=margin(c(50,50,50,50)))
 
-# ggsave(filename="corr_AQS_NAM_west_august.png", plot=corr_West,
-#        path = file.path(out.dir, "BlueSky_eval_pop"),
-#        width = 10, height = 8, 
-#        dpi = 300, units = "in", device='png')
-
-
 
 # Correlation: NAM vs AQS by metro area
 corr_metro <- NAM_2015_Comp_Codes %>% 
@@ -1058,11 +593,6 @@ corr_metro <- NAM_2015_Comp_Codes %>%
         legend.justification = c(-0.3, 0.3), 
         legend.position = c(-0.3, 0.3),
         legend.box.margin=margin(c(50,50,50,50)))
-
-# ggsave(filename="corr_AQS_NAM_west_August_metro.png", plot=corr_metro,
-#        path = file.path(out.dir, "BlueSky_eval_pop"),
-#        width = 10, height = 8, 
-#        dpi = 300, units = "in", device='png')
 
 
 
@@ -1105,13 +635,6 @@ corr_THold <- NAM_2015_Comp_Codes %>%
         legend.justification = c(-0.3, 0.3),
         legend.position = c(-0.3, 0.3),
         legend.box.margin=margin(c(50,50,50,50)))
-# 
-# ggsave(filename="corr_AQS_NAM_west_Thold_august.png", plot=corr_THold,
-#        path = file.path(out.dir, "BlueSky_eval_pop"),
-#        width = 10, height = 8, 
-#        dpi = 300, units = "in", device='png')
-
-
 
 
 corr_grid  <- grid.arrange(corr_NAM_AQS, corr_West, corr_metro, corr_THold, nrow = 2)
@@ -1122,300 +645,7 @@ ggsave(filename="corr_AQS_NAM_grid.png", plot=corr_grid,
 
 
 
-
-
-
-
-
-
-
-# Here we plot the number of person-days of exposure (population * # of days with max PM2.5 concentration greater than 20ug/m3) per county 
-tmap_mode("plot")
-cnty_per_yr <- cnty_smk_pop %>% filter(Year %in% c(2014:2018)) %>%
-  mutate(smk_dy = ifelse(DY_Max >= 20, 1, 0), per_dy = POP * ifelse(DY_Max >= 20, 1, 0)) %>%
-  group_by(FIPS5, Year) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), yr_per_dys = sum(per_dy, na.rm = T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>%
-  tm_shape(projection="+init=epsg:2163") +
-  tm_polygons(col= "yr_per_dys", legend.is.portrait = F,
-              style = "log10_pretty",
-              # breaks = c(0, 1e+, 50000000, 100000000),
-              # labels = c("0", "1", "5", "50", "100"),
-              legend.format = list(text.separator= "-"),
-              palette = get_brewer_pal("OrRd", n = 6, contrast = c(0.0, 1)),
-              border.col = "grey90", lwd=0.15,
-              title = "Person-Days") +
-  tm_facets(by = "Year", free.coords = FALSE, ncol = 2, free.scales=FALSE, scale.factor=1.4) +
-  tm_shape(US_states) +
-  tm_borders(lwd=0.2, col = "black", alpha = .4) +
-  tm_layout(main.title= "County-level Person-Days of Exposure to PM2.5 Conc. > 20\u03bcg/m\u00B3, 2014 - 2019", 
-            main.title.position = "center",
-            main.title.size = 0.6,
-            legend.title.size = 0.5,
-            legend.text.size=0.45,
-            legend.width = 1.0,
-            legend.outside = T,
-            legend.outside.position = "bottom",
-            legend.outside.size=0.07,
-            legend.position = c("right", "bottom"),
-            legend.just = "center",
-            panel.label.size = 0.7,
-            panel.label.height = 1.3,
-            panel.label.bg.color = 'grey95',
-            panel.label.color = 'black',
-            inner.margins = c(0.06, 0.06, 0.06, 0.06),
-            frame = FALSE)
-tmap_save(cnty_per_yr, filename=file.path(out.dir,"BlueSky_eval_pop", "cnty_per_dys.png"), width=1280, height=1800, asp=0)
-
-
-
-# Calculating and mapping PM25 concentration for fire season 2015
-tmap_mode("plot")
-monthly_mean <- NAM_2015_Comp_Codes %>% filter(!Month %in% c("January", "February","March","December")) %>% 
-  group_by(FIPS5, Month) %>% 
-  summarize(NAM_mnt_max = mean(PM_NAM_max, na.rm=T), 
-            NAM_mnt_mean = mean(PM_NAM_Mean, na.rm=T),
-            AQS_mnt_mean = mean(PM_AQS_Mean, na.rm=T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>%
-  tm_shape(projection="+init=epsg:2163") +
-  tm_polygons(col= "AQS_mnt_mean", legend.is.portrait = F,
-              style = "fixed",
-              breaks = c(0, 5, 10,  50, 100, 500, 1000),
-              palette = get_brewer_pal("OrRd", n = 8, contrast = c(0.0, 1)),
-              border.col = "grey90", lwd=0.1,
-              title = "Mean PM_25 [ug/m3]") +
-  tm_facets(by = "Month", free.coords = FALSE, ncol = 2, free.scales=FALSE, scale.factor=1.3) +
-  tm_shape(US_CON_Cty) +
-  tm_borders(lwd=0.1, col = "black", alpha = .2) +
-  tm_layout(main.title= "Monthly average of AQS daily mean PM2.5, 2015", 
-            main.title.position = 0.25,
-            main.title.size = 0.5,
-            legend.title.size = 0.4,
-            legend.text.size=0.4,
-            legend.outside = TRUE,
-            legend.outside.position = "bottom",
-            legend.outside.size=0.07,
-            legend.position = c("center", "bottom"),
-            legend.just = "center",
-            panel.label.size = 0.7,
-            panel.label.height = 1.3,
-            panel.label.bg.color = 'grey95',
-            panel.label.color = 'black',
-            inner.margins = c(0.08, 0.10, 0.10, 0.08),
-            frame = FALSE)
-tmap_save(monthly_mean, filename=file.path(out.dir,"BlueSky_eval_pop", "AQS_mnt_mean.png"), width=1280, height=1800, asp=0)
-
-
-wf_mnt_cor <- NAM_2015_Comp_Codes %>% filter(!Month %in% c("January", "February","March","December")) %>% 
-  group_by(FIPS5, Month, Metro_Class) %>% 
-  summarize(NAM_mnt_mean = mean(PM_NAM_Mean, na.rm=T),
-            AQS_mnt_mean = mean(PM_AQS_Mean, na.rm=T)) %>%
-  ggplot(aes(x = NAM_mnt_mean, y = AQS_mnt_mean, color = Metro_Class)) +
-  geom_point(alpha = 0.3, size =  0.8) +
-  geom_smooth(method="lm") +
-  stat_cor(method = "kendall", 
-           size = 3.0, 
-           cor.coef.name = "tau", 
-           label.x = 10,
-           aes(color = Metro_Class)) +
-  facet_wrap(~ Month, ncol = 2) +
-  labs(title = "NAM:AQS - Monthly average of daily mean PM2.5, 2015",
-       y = "NAM_PM_mean [ug/m3]",
-       x = "AQS_PM_mean [ug/m3]") + theme_bw(base_size = 15) +
-  # adjust the x axis breaks
-  # scale_x_date(date_breaks = "months", date_labels = "%m") +
-  theme(panel.background = element_rect(fill="white",colour ="lightblue",size=0.5,linetype="solid"),
-        panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-        panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-        plot.title = element_text(hjust = 0.5, size = 13),
-        axis.text.x = element_text(size = 10),
-        axis.text.y = element_text(size = 13))
-ggsave(filename="wf_mnt_met_cor.png", plot=wf_mnt_cor, device="png", path = file.path(out.dir,"BlueSky_eval_pop"))
-
-
-wf_mnt_TH <- NAM_2015_Comp_Codes %>% filter(!Month %in% c("January", "February","March","December")) %>% 
-  group_by(FIPS5, Month, THold_mean) %>% 
-  summarize(NAM_mnt_mean = mean(PM_NAM_Mean, na.rm=T),
-            AQS_mnt_mean = mean(PM_AQS_Mean, na.rm=T)) %>%
-  ggplot(aes(x = NAM_mnt_mean, y = AQS_mnt_mean, color = THold_mean)) +
-  geom_point(alpha = 0.3, size =  0.8) +
-  geom_smooth(method="lm") +
-  stat_cor(method = "kendall", 
-           size = 3.0, 
-           label.x = 250, 
-           cor.coef.name = "tau",
-           aes(color = THold_mean)) +
-  facet_wrap(~ Month, ncol = 2) +
-  labs(title = "NAM:AQS - Monthly average of daily mean PM2.5, 2015",
-       y = "NAM_PM_mean [ug/m3]",
-       x = "AQS_PM_mean [ug/m3]") + theme_bw(base_size = 15) +
-  # adjust the x axis breaks
-  # scale_x_date(date_breaks = "months", date_labels = "%m") +
-  theme(panel.background = element_rect(fill="white",colour ="lightblue",size=0.5,linetype="solid"),
-        panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-        panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-        plot.title = element_text(hjust = 0.5, size = 13),
-        axis.text.x = element_text(size = 10),
-        axis.text.y = element_text(size = 13))
-ggsave(filename="wf_mnt_th_cor.png", plot=wf_mnt_TH, device="png", path = file.path(out.dir,"BlueSky_eval_pop"))
-
-
-
-
-########## correlation plots ##################
-
-cor_plot <- NAM_2015_Comp_Codes %>% filter(ST_Abbr %in% c("WA", "CA", "OR")) %>% #Month %in% c("August", "November") & 
-  select(YMD, PM_NAM_max, PM_NAM_Mean, PM_AQS_Mean, Metro_Class, THold_mean, THold_max, Month, Season)  %>%
-  ggscatter(., x = "PM_AQS_Mean", y = "PM_NAM_Mean", palette="jco",
-            color= "THold_mean",
-            add = "reg.line",  # Add regressin line
-            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
-            conf.int = TRUE) # Add confidence interval
-cor_plot <- cor_plot + stat_cor(method = "kendall", 
-                                label.x = 0,
-                                aes(color = THold_mean)
-)
-ggsave(filename="AQS_NAM_mean_cor_tresholds.png", plot=cor_plot, device="png", path = file.path(out.dir, "BlueSky_eval_pop"))
-
-
 ######### Combined Plots ##########
-
-AQS_ave_cnty_smk_dys <- NAM_2015_Comp_Codes %>% 
-  mutate(smk_dy = ifelse(PM_AQS_Mean >= 20, 1, 0), per_dy = POP * ifelse(PM_AQS_Mean >= 20, 1, 0)) %>%
-  group_by(FIPS5) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), sum_per_dys = sum(per_dy, na.rm = T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>% mutate(max=max(smk_dy_ct)) %>%
-  ggplot()  +
-  geom_sf(aes(fill = smk_dy_ct), size =0.1, color="grey55") +
-  geom_sf(data = US_CON_Cty, aes(color=STATES), color="grey90",  alpha = 0.1, fill=NA, size=0.1) +
-  geom_sf(data = US_CON_St, aes(color=STATES), color="grey65",  alpha = 0.1, fill=NA, size=0.1) +
-  geom_sf(data = NCDC_bdry, aes(color=Clim_Reg), color="black",  alpha = 0.9, fill=NA, size=0.15) +
-  geom_sf_text(data = NCDC_bdry, aes(label = Clim_Reg), colour = "black", size=2.0) +
-  coord_sf(crs ="+init=epsg:2163") +
-  scale_fill_gradientn(name = "Smoke Days", na.value="grey50",
-                       limits = c(0,  207),
-                       space = "Lab",
-                       colours = c("#FFFFFC", get_brewer_pal("YlOrRd", n = 50, contrast = c(0.2, 1.0)))) +
-  theme_void() +
-  labs(title = expression(paste("AQS total county-level number of smoke days"))) +
-  guides(fill = guide_colourbar(barwidth = 12.0, barheight = 0.5, draw.ulim = FALSE, draw.llim = FALSE, frame.colour = "Gray80", direction = "horizontal")) +
-  theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-        panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-        panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-        plot.title = element_text(hjust = 0.5, size =10),
-        plot.subtitle = element_text(hjust = 0.5, size = 12),
-        legend.text = element_text(margin = margin(t = 5)),
-        # legend.justification = c(1.0, 0.5), 
-        legend.position = "bottom",
-        legend.box.margin=margin(c(5,5,5,5)))
-
-
-NAM_ave_cnty_smk_dys <- cnty_smk_pop %>%
-  filter(Year==2015) %>%
-  mutate(smk_dy = ifelse(DY_Max >= 20, 1, 0), per_dy = POP * ifelse(DY_Max >= 20, 1, 0)) %>%
-  group_by(FIPS5) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), sum_per_dys = sum(per_dy, na.rm = T)) %>% 
-  mutate(max=max(smk_dy_ct)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>%
-  ggplot()  +
-  geom_sf(aes(fill = smk_dy_ct), size =0.1, color="grey55") +
-  geom_sf(data = US_CON_Cty, aes(color=STATES), color="grey90",  alpha = 0.1, fill=NA, size=0.1) +
-  geom_sf(data = US_CON_St, aes(color=STATES), color="grey65",  alpha = 0.1, fill=NA, size=0.1) +
-  geom_sf(data = GACC, aes(color=GACCAbbrev), color="black",  alpha = 0.9, fill=NA, size=0.15) +
-  geom_sf_text(data = GACC, aes(label = GACCAbbrev), colour = "black", size=2.0) +
-  coord_sf(crs ="+init=epsg:2163") +
-  scale_fill_gradientn(name = "Smoke Days", na.value="grey50",
-                       limits = c(0,  200),
-                       space = "Lab",
-                       colours = c("#FFFFFC", get_brewer_pal("YlOrRd", n = 50, contrast = c(0.2, 1.0)))) +
-  theme_void() +
-  labs(title  = expression(paste("NAM total county-level number of smoke days"))) +
-  guides(fill = guide_colourbar(barwidth = 12.0, barheight = 0.5, draw.ulim = FALSE, draw.llim = FALSE, frame.colour = "Gray80", direction = "horizontal")) +
-  theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-        panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-        panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-        plot.title = element_text(hjust = 0.5, size = 10),
-        plot.subtitle = element_text(hjust = 0.5, size = 12),
-        legend.text = element_text(margin = margin(t = 5)),
-        # legend.justification = c(1.0, 0.5), 
-        legend.position = "bottom",
-        legend.box.margin=margin(c(5,5,5,5)))
-
-
-AQS_ave_cnty_per_dys <- NAM_2015_Comp_Codes %>% 
-  mutate(smk_dy = ifelse(PM_AQS_Mean >= 20, 1, 0), per_dy = POP * ifelse(PM_AQS_Mean >= 20, 1, 0)) %>%
-  group_by(FIPS5) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), sum_per_dys = sum(per_dy, na.rm = T)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>% mutate(max=max(sum_per_dys)) %>%
-  ggplot()  +
-  geom_sf(aes(fill = sum_per_dys), size =0.1, color="grey55") +
-  geom_sf(data = US_CON_Cty, aes(color=STATES), color="grey90",  alpha = 0.1, fill=NA, size=0.1) +
-  geom_sf(data = US_CON_St, aes(color=STATES), color="grey65",  alpha = 0.1, fill=NA, size=0.1) +
-  geom_sf(data = GACC, aes(color=GACCAbbrev), color="black",  alpha = 0.9, fill=NA, size=0.15) +
-  geom_sf_text(data = GACC, aes(label = GACCAbbrev), colour = "black", size=2.0) +
-  coord_sf(crs ="+init=epsg:2163") +
-  scale_fill_gradientn(name = "Person Days", na.value="grey50",
-                       limits = c(0,  1.4e9),
-                       space = "Lab",
-                       colours = c("#FFFFFC", get_brewer_pal("YlOrRd", n = 1e3, contrast = c(0.2, 1.0)))) +
-  theme_void() +
-  labs(title = expression(paste("AQS total county-level person days of exposure"))) +
-  guides(fill = guide_colourbar(barwidth = 12.0, barheight = 0.5, draw.ulim = FALSE, draw.llim = FALSE, frame.colour = "Gray80", direction = "horizontal")) +
-  theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-        panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-        panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-        plot.title = element_text(hjust = 0.5, size = 10),
-        plot.subtitle = element_text(hjust = 0.5, size = 12),
-        legend.text = element_text(margin = margin(t = 5)),
-        # legend.justification = c(1.0, 0.5), 
-        legend.position = "bottom",
-        legend.box.margin=margin(c(5,5,5,5)))
-
-
-
-NAM_ave_cnty_per_dys <- cnty_smk_pop %>%
-  filter(Year==2015) %>%
-  mutate(smk_dy = ifelse(DY_Max >= 20, 1, 0), per_dy = POP * ifelse(DY_Max >= 20, 1, 0)) %>%
-  group_by(FIPS5) %>% 
-  summarise(smk_dy_ct = sum(smk_dy, na.rm = T), sum_per_dys = sum(per_dy, na.rm = T)) %>%
-  mutate(max=max(sum_per_dys)) %>%
-  left_join(US_CON_Cty, by = "FIPS5") %>% st_sf() %>%
-  ggplot()  +
-  geom_sf(aes(fill = sum_per_dys), size =0.1, color="grey55") +
-  geom_sf(data = US_CON_Cty, aes(color=STATES), color="grey90",  alpha = 0.1, fill=NA, size=0.1) +
-  geom_sf(data = US_CON_St, aes(color=STATES), color="grey65",  alpha = 0.1, fill=NA, size=0.1) +
-  geom_sf(data = GACC, aes(color=GACCAbbrev), color="black",  alpha = 0.9, fill=NA, size=0.15) +
-  geom_sf_text(data = GACC, aes(label = GACCAbbrev), colour = "black", size=2.0) +
-  coord_sf(crs ="+init=epsg:2163") +
-  scale_fill_gradientn(name = "Person Days", na.value="grey50",
-                       limits = c(0,  1.4e9),
-                       colours = c("#FFFFFC", get_brewer_pal("YlOrRd", n = 1e4, contrast = c(0.2, 1.0)))) +
-  theme_void() +
-  labs(title = expression(paste("NAM total county-level person days of exposure"))) +
-  guides(fill = guide_colourbar(barwidth = 12.0, barheight = 0.5, draw.ulim = FALSE, draw.llim = FALSE, frame.colour = "Gray80", direction = "horizontal")) +
-  theme(panel.background = element_rect(fill="white",colour ="white",size=0.5,linetype="solid"),
-        panel.grid.major = element_line(size=0.5,linetype='solid',colour="white"), 
-        panel.grid.minor = element_line(size=0.25,linetype='solid',colour="white"),
-        plot.title = element_text(hjust = 0.5, size = 10),
-        plot.subtitle = element_text(hjust = 0.5, size = 12),
-        legend.text = element_text(margin = margin(t = 5)),
-        # legend.justification = c(1.0, 0.5), 
-        legend.position = "bottom",
-        legend.box.margin=margin(c(5,5,5,5)))
-
-smk_perdys_grid  <- grid.arrange(AQS_ave_cnty_smk_dys,  NAM_ave_cnty_smk_dys, AQS_ave_cnty_per_dys, NAM_ave_cnty_per_dys, nrow = 2)
-ggsave(filename="AQS_NAM_grid.png", plot=smk_perdys_grid,
-       path = file.path(out.dir, "BlueSky_eval_pop"),
-       width = 10, height = 10, 
-       dpi = 300, units = "in", device='png')
-
-
-
-
-
-
-
-
 
 AQS_wfszn_cnty_per_dys_grid <- NAM_2015_Comp_Codes %>% 
   mutate(smk_dy = ifelse(PM_AQS_Mean >= 20, 1, 0), per_dy = POP * ifelse(PM_AQS_Mean >= 20, 1, 0)) %>%
@@ -1483,7 +713,6 @@ NAM_wfszn_cnty_smk_dys_grid <- cnty_smk_pop %>%
   ))
 NAM_plot_names <- paste("NAM", c("Early", "Off", "Peak"), sep="_")
 assign(NAM_plot_names, NAM_wfszn_cnty_smk_dys_grid$plot)
-
 
 
 

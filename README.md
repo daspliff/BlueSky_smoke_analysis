@@ -6,25 +6,39 @@ Authors: Ryan Michael, PhD; Maria C. Mirabelli, PhD; and Ambarish Vaidyanathan, 
 
 ### Code
 
-All the algorithms and experiments used in this paper were implemented using [R](https://www.r-project.org/). [Download](https://github.com/daspliff/BlueSky_smoke_analysis/archive/main.zip) the code and open the R folder. There are 4 files:
+All the algorithms and experiments used in this paper were implemented using [R](https://www.r-project.org/) and [SAS](https://www.sas.com/en_us/software/stat.html/). [Download](https://github.com/daspliff/BlueSky_smoke_analysis/archive/main.zip) the code and open the R folder. There are 4 files:
 
 * R_scripts/
-   * ```fire_season_analysis.R```
-      - Methods implementation
-   * ```run_example.R```
-      - An example of how to use the fire season detection and the forecasting methods
-   * ```data_exemple.csv```
-      - Data from figure 1 in the paper (India) used in the examples
-   * ```R.Rproj```
-      - R Studio project file
+   * ```get_wf_data.R```
+      - Script for generating a list of urls for downloading archived smoke data form AirFire’s ftp server 
+   * ```proc_bluesky_daily.R```
+      - Script for processing raw NetCDF smoke data into timeseries data
+   * ```BlueSky_data_eval.R```
+      - Method implementation script
+ 
 
 * Bash_scripts/
 	*```gen_batch_files.csh```
-	  - Methods implementation
+   *```get_wf_data.sh```
+   *```run_batch_bluesky.sh```
+      - Scripts for processing raw archived data as a batch job
 
-	*```run_batch_bluesky.sh```
 
-      
+* sample_data/
+   * ncdc_regions/
+      - NCDC climate region shapfiles
+   * us_county_bdry/
+      - US COunty boundary shapefiles
+   * us_state_bdry/
+      - US state boundary shapefiles
+   *```Comparison_Dataset_NAM_AQS_2015.csv```
+      - Sample processed county-level NAM/AQS smoke dataset
+   *```County_pop_yr_1418.csv```
+      - County-level population data
+   *```NCHSURCodes2013.xlsx```
+      - NCHS dUrban_Rural classification codes
+
+
 
 ### Contact
 
