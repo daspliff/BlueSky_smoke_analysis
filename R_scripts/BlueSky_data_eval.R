@@ -431,7 +431,7 @@ AQS_ave_cnty_smk_dys <- NAM_2015_Comp_Codes %>%
         legend.justification = c(1.0, 0.5), 
         legend.position = c(1.03, 0.26),
         legend.box.margin=margin(c(50,50,50,50)))
-ggsave(plot=AQS_ave_cnty_smk_dys, filename = file.path(out.dir, "BlueSky_eval_pop", "cnty_smk_dys", "AQS_yr_ave_smk_dys.png"),
+ggsave(plot=AQS_ave_cnty_smk_dys, filename = file.path(out.dir, "AQS_yr_ave_smk_dys.png"),
        width = 10, height = 8, dpi = 300, units = "in", device='png')
 
 
@@ -464,7 +464,7 @@ AQS_ave_cnty_per_dys <- NAM_2015_Comp_Codes %>%
         legend.justification = c(1.0, 0.5), 
         legend.position = c(1.03, 0.26),
         legend.box.margin=margin(c(50,50,50,50)))
-ggsave(plot=AQS_ave_cnty_per_dys, filename = file.path(out.dir, "BlueSky_eval_pop", "cnty_pers_dys", "AQS_yr_ave_per_dys.png"),
+ggsave(plot=AQS_ave_cnty_per_dys, filename = file.path(out.dir, "AQS_yr_ave_per_dys.png"),
        width = 10, height = 8, dpi = 300, units = "in", device='png')
 
 
@@ -639,7 +639,7 @@ corr_THold <- NAM_2015_Comp_Codes %>%
 
 corr_grid  <- grid.arrange(corr_NAM_AQS, corr_West, corr_metro, corr_THold, nrow = 2)
 ggsave(filename="corr_AQS_NAM_grid.png", plot=corr_grid,
-       path = file.path(out.dir, "BlueSky_eval_pop"),
+       path = file.path(out.dir),
        width = 10, height = 10, 
        dpi = 300, units = "in", device='png')
 
@@ -718,7 +718,7 @@ assign(NAM_plot_names, NAM_wfszn_cnty_smk_dys_grid$plot)
 
 wf_szn_smkdy_grid  <- grid.arrange(grobs= c(get(AQS_plot_names), get(NAM_plot_names)), ncol = 3)
 ggsave(filename="AQS_NAM_wfszn_grid.png", plot=wf_szn_smkdy_grid,
-       path = file.path(out.dir, "BlueSky_eval_pop"),
+       path = file.path(out.dir),
        width = 15, height = 10, 
        dpi = 300, units = "in", device='png')
 

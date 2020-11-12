@@ -6,7 +6,7 @@ Authors: Ryan Michael, PhD; Maria C. Mirabelli, PhD; and Ambarish Vaidyanathan, 
 
 ### Code
 
-All the algorithms and experiments used in this paper were implemented using [R](https://www.r-project.org/) and [SAS](https://www.sas.com/en_us/software/stat.html/). [Download](https://github.com/daspliff/BlueSky_smoke_analysis/archive/main.zip) the code and open the R_scripts folder. There are 3 files:
+All the algorithms and analysis used in this paper were implemented using [R](https://www.r-project.org/) and [SAS](https://www.sas.com/en_us/software/stat.html/). [Download](https://github.com/daspliff/BlueSky_smoke_analysis/archive/main.zip) the code and open the R_scripts folder. There are 3 files:
 
 * R_scripts/
    * ```get_wf_data.R```
@@ -16,6 +16,7 @@ All the algorithms and experiments used in this paper were implemented using [R]
    * ```BlueSky_data_eval.R```
       - Method implementation script
  
+Additional scripts and data:
 
 * Bash_scripts/
    * ```gen_batch_files.csh```
@@ -41,6 +42,8 @@ All the algorithms and experiments used in this paper were implemented using [R]
    * ```NCHSURCodes2013.xlsx```
       - NCHS Urban_Rural classification codes
 
+* proc_outputs/
+      - Generated outputs
 
 
 ### Contact
