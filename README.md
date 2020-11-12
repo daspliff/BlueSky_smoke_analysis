@@ -23,6 +23,9 @@ All the algorithms and experiments used in this paper were implemented using [R]
    * ```run_batch_bluesky.sh```
       - Scripts for processing raw archived data as a batch job
 
+* SAS_scripts/
+   * ```proc_script.sas```
+      - Method implementation script
 
 * sample_data/
    * ncdc_regions/
